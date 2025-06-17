@@ -1,0 +1,219 @@
+/* static/css/style.css */
+:root {
+    --bg-color: #f0f2f6;
+    --card-bg-color: #ffffff;
+    --text-color: #333;
+    --primary-color: #007bff;
+    --primary-hover: #0056b3;
+    --danger-color: #dc3545;
+    --danger-hover: #c82333;
+    --success-color: #28a745;
+    --error-color: #dc3545;
+    --border-color: #dee2e6;
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 350px;
+    background-color: var(--card-bg-color);
+    padding: 20px;
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar header h2 {
+    margin-top: 0;
+    color: var(--primary-color);
+}
+
+.input-section {
+    margin-bottom: 20px;
+}
+
+.input-section h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+.main-content {
+    flex-grow: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+.main-content header {
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+}
+
+h1 {
+    margin-top: 0;
+    color: var(--text-color);
+}
+
+.content-columns {
+    display: flex;
+    gap: 30px;
+}
+
+.column-left {
+    flex-basis: 35%;
+}
+
+.column-right {
+    flex-basis: 65%;
+}
+
+select, input[type="range"] {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+button {
+    width: 100%;
+    padding: 10px 15px;
+    font-size: 1em;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #6c757d;
+    color: white;
+    margin-top: 10px;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #5a6268;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+button.primary {
+    background-color: var(--primary-color);
+}
+button.primary:hover {
+    background-color: var(--primary-hover);
+}
+
+button.danger {
+    background-color: var(--danger-color);
+}
+button.danger:hover {
+    background-color: var(--danger-hover);
+}
+
+#video-feed {
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background-color: #000;
+}
+
+.status-message {
+    margin-top: 10px;
+    font-size: 0.9em;
+    padding: 8px;
+    border-radius: 4px;
+    text-align: center;
+}
+.status-message.success { background-color: #d4edda; color: #155724; }
+.status-message.error { background-color: #f8d7da; color: #721c24; }
+.status-message.info { background-color: #d1ecf1; color: #0c5460; }
+
+.result-box {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 5px;
+    font-size: 1.1em;
+    text-align: center;
+    background-color: #e9ecef;
+}
+
+.feedback-text {
+    white-space: pre-wrap;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+}
+
+.metric {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.metric-label {
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+.metric-value {
+    font-size: 2em;
+    font-weight: bold;
+}
+
+/* Tabs for dashboard */
+.tabs {
+    overflow: hidden;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 20px;
+}
+.tab-link {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+    font-size: 1em;
+    color: #333;
+    width: auto;
+    margin-top: 0;
+}
+.tab-link:hover {
+    background-color: #ddd;
+}
+.tab-link.active {
+    background-color: #ccc;
+    border-bottom: 2px solid var(--primary-color);
+}
+.tab-content {
+    display: none;
+    padding: 6px 12px;
+}
+
+footer {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 0.8em;
+    color: #6c757d;
+    border-top: 1px solid var(--border-color);
+    padding-top: 15px;
+}

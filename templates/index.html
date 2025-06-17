@@ -1,0 +1,132 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Modal Therapy Companion</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <header>
+                <h2>📝 Your Inputs</h2>
+            </header>
+            
+            <div class="input-section">
+                <h3>Step 1: Facial Emotion Check-in</h3>
+                <label for="detector-selector">Face Detector Backend</label>
+                <select id="detector-selector">
+                    <option value="mediapipe" selected>mediapipe</option>
+                    <option value="opencv">opencv</option>
+                    <option value="ssd">ssd</option>
+                    <option value="dlib">dlib</option>
+                    <option value="mtcnn">mtcnn</option>
+                    <option value="retinaface">retinaface</option>
+                    <option value="yolov8">yolov8</option>
+                    <option value="yunet">yunet</option>
+                </select>
+                <video id="video-feed" width="100%" autoplay playsinline></video>
+                <canvas id="canvas" style="display:none;"></canvas>
+                <button id="capture-btn">Capture & Analyze Face</button>
+                <div id="face-status" class="status-message"></div>
+            </div>
+
+            <hr>
+
+            <div class="input-section">
+                <h3>Step 2: Voice Emotion Check-in</h3>
+                <p class="caption">Click 'Record' and speak for a few seconds, then 'Stop & Analyze'.</p>
+                <button id="record-btn">Record Audio</button>
+                <button id="stop-btn" disabled>Stop & Analyze</button>
+                <div id="voice-status" class="status-message"></div>
+            </div>
+
+            <hr>
+
+            <div class="input-section">
+                <h3>Step 3: Log Sleep and Activity</h3>
+                <label for="sleep-slider">Hours of Sleep: <span id="sleep-value">7.5</span></label>
+                <input type="range" id="sleep-slider" min="0" max="12" value="7.5" step="0.5">
+                
+                <label for="activity-selector">Today's Activity Level</label>
+                <select id="activity-selector">
+                    <option>Very Low</option>
+                    <option>Low</option>
+                    <option selected>Moderate</option>
+                    <option>High</option>
+                </select>
+            </div>
+            
+            <hr>
+
+            <div class="input-section">
+                <h3>Step 4: Get Feedback</h3>
+                <button id="log-checkin-btn" class="primary">📊 Analyze and Log Check-in</button>
+            </div>
+
+        </aside>
+
+        <main class="main-content">
+            <header>
+                <h1>😌 Cross-Modal Therapy Companion</h1>
+                <p>Reflect on your well-being through facial emotion analysis, voice emotion, sleep tracking, and activity logging.</p>
+            </header>
+            
+            <div class="content-columns">
+                <div class="column-left">
+                    <h2>👁️ Current Check-in</h2>
+                    <div id="current-checkin-display">
+                        <img id="captured-image-display" src="#" alt="Captured Face" style="display:none; width: 100%; border-radius: 8px;">
+                        <p id="current-checkin-info">Capture an image and record audio using the sidebar.</p>
+                        <div id="emotion-result-display" class="result-box" style="display: none;"></div>
+                        <div id="voice-emotion-result-display" class="result-box" style="display: none;"></div>
+                    </div>
+                    <hr>
+                    <div id="feedback-report-display" style="display: none;">
+                        <h2>💬 Feedback Report</h2>
+                        <div id="stress-metric" class="metric"></div>
+                        <div id="feedback-text" class="feedback-text"></div>
+                    </div>
+                </div>
+
+                <div class="column-right">
+                    <h2>📈 Your Well-being Dashboard</h2>
+                    <div class="tabs">
+                        <button class="tab-link active" onclick="openTab(event, 'Stress')">Stress Trends</button>
+                        <button class="tab-link" onclick="openTab(event, 'Sleep')">Sleep Patterns</button>
+                        <button class="tab-link" onclick="openTab(event, 'Emotion')">Face Emotion</button>
+                        <button class="tab-link" onclick="openTab(event, 'Voice')">Voice Emotion</button>
+                    </div>
+
+                    <div id="Stress" class="tab-content" style="display: block;">
+                        <h4>Potential Stress Score Over Time</h4>
+                        <canvas id="stress-chart"></canvas>
+                    </div>
+                    <div id="Sleep" class="tab-content">
+                        <h4>Sleep Hours Over Time</h4>
+                        <canvas id="sleep-chart"></canvas>
+                    </div>
+                    <div id="Emotion" class="tab-content">
+                        <h4>Face Emotion Distribution</h4>
+                        <canvas id="emotion-chart"></canvas>
+                    </div>
+                    <div id="Voice" class="tab-content">
+                        <h4>Voice Emotion Distribution</h4>
+                        <canvas id="voice-emotion-chart"></canvas>
+                    </div>
+                    <hr>
+                    <button id="clear-logs-btn" class="danger">⚠️ Clear All Log Data</button>
+                </div>
+            </div>
+            <footer>
+                <p><em>Disclaimer: This tool is for informational purposes and self-reflection. It is not a substitute for professional medical or psychological advice.</em></p>
+            </footer>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

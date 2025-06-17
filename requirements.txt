@@ -1,0 +1,19 @@
+# requirements.txt
+
+Flask
+pandas
+numpy
+opencv-python
+deepface
+librosa
+torch
+transformers
+soundfile
+gunicorn
+tf-keras
+accelerate
+safetensors
+mediapipe
+sentencepiece
+scipy
+requests
