@@ -1,4 +1,3 @@
-timestamp,emotion,voice_emotion,sleep_hours,activity_level,stress_score,feedback_summary,detector_backend,image_path
-2025-06-20 11:21:02.278295,fear,Error: Voice analysis failed,5.5,Moderate,4,**Your potential stress score is 4 (lower is better).**,mediapipe,captured_images\face_20250620_112025_689813.jpg
-2025-06-20 11:49:14,surprise,sad,7.5,Moderate,3,**Your potential stress score is 3 (lower is better).**,mediapipe,captured_images\face_20250620_114748_749566.jpg
-2025-06-20 11:51:43,happy,hap,6,Low,3,**Your potential stress score is 3 (lower is better).**,retinaface,captured_images\face_20250620_115104_313436.jpg
+timestamp,face_emotion,voice_emotion,sleep_hours,activity_level,stress_score,detector_backend,image_path
+2025-06-21 11:13:32,neutral,sad,4.5,Very Low,7,retinaface,captured_images\face_ac7c5c97-33fa-4e87-9acc-48fe0a1d5341.jpg
+2025-06-21 11:16:03,sad,neu,5,Moderate,4,retinaface,captured_images\face_359e3679-2ae0-4727-8642-09a1cfd27dbb.jpg

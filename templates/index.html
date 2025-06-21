@@ -1,132 +1,147 @@
-<!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cross-Modal Therapy Companion</title>
+    <title>Mindful Companion</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
         <aside class="sidebar">
-            <header>
-                <h2>📝 Your Inputs</h2>
+            <header class="sidebar-header">
+                <div class="logo">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="24" height="24" rx="12" fill="#E3FCEC"/>
+                      <path d="M7 8.5C7 7.12 8.12 6 9.5 6H14.5C15.88 6 17 7.12 17 8.5V13.5C17 14.88 15.88 16 14.5 16H10L7 19V8.5Z" fill="#5FAD56"/>
+                      <path d="M12 11.5C12.8284 11.5 13.5 10.8284 13.5 10C13.5 9.17157 12.8284 8.5 12 8.5C11.1716 8.5 10.5 9.17157 10.5 10C10.5 10.8284 11.1716 11.5 12 11.5Z" fill="#fff"/>
+                    </svg>
+                </div>
+                <h2>Your Daily Check-in</h2>
             </header>
             
-            <div class="input-section">
-                <h3>Step 1: Facial Emotion Check-in</h3>
-                <label for="detector-selector">Face Detector Backend</label>
-                <select id="detector-selector">
-                    <option value="mediapipe" selected>mediapipe</option>
-                    <option value="opencv">opencv</option>
-                    <option value="ssd">ssd</option>
-                    <option value="dlib">dlib</option>
-                    <option value="mtcnn">mtcnn</option>
-                    <option value="retinaface">retinaface</option>
-                    <option value="yolov8">yolov8</option>
-                    <option value="yunet">yunet</option>
-                </select>
-                <video id="video-feed" width="100%" autoplay playsinline></video>
-                <canvas id="canvas" style="display:none;"></canvas>
-                <button id="capture-btn">Capture & Analyze Face</button>
-                <div id="face-status" class="status-message"></div>
-            </div>
+            <div class="stepper">
+                <div class="step">
+                    <div class="step-header"><h3><span>1</span> Facial Expression</h3></div>
+                    <div class="step-content">
+                        <label for="detector-selector">Analysis Model</label>
+                        <select id="detector-selector">
+                            <option value="retinaface">RetinaFace (High Accuracy)</option>
+                            <option value="mtcnn">MTCNN (Good Balance)</option>
+                            <option value="opencv">OpenCV (Fastest, Basic)</option>
+                            <option value="ssd">SSD (Lightweight)</option>
+                            <option value="dlib">Dlib (CPU-Friendly)</option>
+                            <option value="mediapipe" selected>MediaPipe (Real-time)</option>
+                            <option value="yolov8">YOLOv8 (Modern, Accurate)</option>
+                            <option value="yunet">YuNet (New, Accurate)</option>
+                        </select>
+                        <div class="video-frame"><video id="video-feed" width="100%" autoplay playsinline></video></div>
+                        <canvas id="canvas" style="display:none;"></canvas>
+                        <button id="capture-btn" class="primary">Analyze Face</button>
+                        <div id="face-status" class="status-message"></div>
+                    </div>
+                </div>
 
-            <hr>
+                <div class="step">
+                    <div class="step-header"><h3><span>2</span> Vocal Tone</h3></div>
+                    <div class="step-content">
+                        <!-- NEW: Canvas for voice visualization -->
+                        <canvas id="voice-visualizer" width="300" height="50"></canvas>
+                        <div class="button-group">
+                            <button id="record-btn" class="primary">Record Voice</button>
+                            <button id="stop-btn" class="secondary" disabled>Stop</button>
+                        </div>
+                        <div id="voice-status" class="status-message"></div>
+                    </div>
+                </div>
 
-            <div class="input-section">
-                <h3>Step 2: Voice Emotion Check-in</h3>
-                <p class="caption">Click 'Record' and speak for a few seconds, then 'Stop & Analyze'.</p>
-                <button id="record-btn">Record Audio</button>
-                <button id="stop-btn" disabled>Stop & Analyze</button>
-                <div id="voice-status" class="status-message"></div>
-            </div>
-
-            <hr>
-
-            <div class="input-section">
-                <h3>Step 3: Log Sleep and Activity</h3>
-                <label for="sleep-slider">Hours of Sleep: <span id="sleep-value">7.5</span></label>
-                <input type="range" id="sleep-slider" min="0" max="12" value="7.5" step="0.5">
+                <div class="step">
+                    <div class="step-header"><h3><span>3</span> Lifestyle Factors</h3></div>
+                    <div class="step-content">
+                        <label for="sleep-slider">Hours of Sleep: <span id="sleep-value">7.5</span></label>
+                        <input type="range" id="sleep-slider" min="0" max="12" value="7.5" step="0.5">
+                        <label for="activity-selector">Activity Level</label>
+                        <select id="activity-selector">
+                            <option>Very Low</option><option>Low</option>
+                            <option selected>Moderate</option><option>High</option>
+                        </select>
+                    </div>
+                </div>
                 
-                <label for="activity-selector">Today's Activity Level</label>
-                <select id="activity-selector">
-                    <option>Very Low</option>
-                    <option>Low</option>
-                    <option selected>Moderate</option>
-                    <option>High</option>
-                </select>
+                <div class="step">
+                    <button id="log-checkin-btn" class="primary">Complete Check-in & Get Feedback</button>
+                </div>
             </div>
-            
-            <hr>
-
-            <div class="input-section">
-                <h3>Step 4: Get Feedback</h3>
-                <button id="log-checkin-btn" class="primary">📊 Analyze and Log Check-in</button>
-            </div>
-
         </aside>
 
         <main class="main-content">
-            <header>
-                <h1>😌 Cross-Modal Therapy Companion</h1>
-                <p>Reflect on your well-being through facial emotion analysis, voice emotion, sleep tracking, and activity logging.</p>
+            <header class="main-header">
+                <h1>Mindful Companion</h1>
+                <p>A private dashboard for your emotional well-being journey.</p>
             </header>
             
-            <div class="content-columns">
-                <div class="column-left">
-                    <h2>👁️ Current Check-in</h2>
-                    <div id="current-checkin-display">
-                        <img id="captured-image-display" src="#" alt="Captured Face" style="display:none; width: 100%; border-radius: 8px;">
-                        <p id="current-checkin-info">Capture an image and record audio using the sidebar.</p>
-                        <div id="emotion-result-display" class="result-box" style="display: none;"></div>
-                        <div id="voice-emotion-result-display" class="result-box" style="display: none;"></div>
+            <div class="results-area">
+                <div id="current-analysis-card" class="card" style="display:none;">
+                    <div class="card-header"><h2>Today's Analysis</h2></div>
+                    <div class="card-body" id="current-checkin-display">
+                        <img id="captured-image-display" src="#" alt="Your captured image" style="display:none;">
+                        <div id="emotion-result-display" class="result-box"></div>
+                        <div id="voice-emotion-result-display" class="result-box"></div>
                     </div>
-                    <hr>
-                    <div id="feedback-report-display" style="display: none;">
-                        <h2>💬 Feedback Report</h2>
+                </div>
+                <div id="feedback-report-display" class="card" style="display: none;">
+                    <div class="card-header"><h2>Your Feedback Report</h2></div>
+                    <div class="card-body">
                         <div id="stress-metric" class="metric"></div>
                         <div id="feedback-text" class="feedback-text"></div>
                     </div>
                 </div>
-
-                <div class="column-right">
-                    <h2>📈 Your Well-being Dashboard</h2>
-                    <div class="tabs">
-                        <button class="tab-link active" onclick="openTab(event, 'Stress')">Stress Trends</button>
-                        <button class="tab-link" onclick="openTab(event, 'Sleep')">Sleep Patterns</button>
-                        <button class="tab-link" onclick="openTab(event, 'Emotion')">Face Emotion</button>
-                        <button class="tab-link" onclick="openTab(event, 'Voice')">Voice Emotion</button>
-                    </div>
-
-                    <div id="Stress" class="tab-content" style="display: block;">
-                        <h4>Potential Stress Score Over Time</h4>
-                        <canvas id="stress-chart"></canvas>
-                    </div>
-                    <div id="Sleep" class="tab-content">
-                        <h4>Sleep Hours Over Time</h4>
-                        <canvas id="sleep-chart"></canvas>
-                    </div>
-                    <div id="Emotion" class="tab-content">
-                        <h4>Face Emotion Distribution</h4>
-                        <canvas id="emotion-chart"></canvas>
-                    </div>
-                    <div id="Voice" class="tab-content">
-                        <h4>Voice Emotion Distribution</h4>
-                        <canvas id="voice-emotion-chart"></canvas>
-                    </div>
-                    <hr>
-                    <button id="clear-logs-btn" class="danger">⚠️ Clear All Log Data</button>
+                <div id="recommendations-card" class="card" style="display: none;">
+                    <div class="card-header"><h2>💡 Recommended Actions</h2></div>
+                    <div id="recommendations-content" class="card-body"></div>
                 </div>
             </div>
+
+            <div class="card">
+                 <div class="tabs">
+                    <button class="tab-link active" onclick="openTab(event, 'Dashboard')">Dashboard</button>
+                    <button class="tab-link" onclick="openTab(event, 'LogHistory')">Log History</button>
+                </div>
+
+                <div id="Dashboard" class="tab-content" style="display: block;">
+                    <p class="section-description">Visualize your journey over time. Each data point represents a completed check-in.</p>
+                    <div class="dashboard-grid">
+                        <div class="chart-card"><canvas id="trends-chart"></canvas></div>
+                        <div class="chart-card"><canvas id="emotion-chart"></canvas></div>
+                        <div class="chart-card"><canvas id="voice-emotion-chart"></canvas></div>
+                    </div>
+                </div>
+
+                <div id="LogHistory" class="tab-content">
+                    <p class="section-description">A complete record of all your past check-ins.</p>
+                    <div class="table-container">
+                        <table id="log-table">
+                            <thead><tr>
+                                <th>Timestamp</th><th>Face Emotion</th><th>Voice Emotion</th>
+                                <th>Sleep</th><th>Activity</th><th>Stress Score</th>
+                            </tr></thead>
+                            <tbody></tbody>
+                        </table>
+                        <p id="no-logs-message" style="display:none;">No logs found. Complete a check-in to get started!</p>
+                    </div>
+                </div>
+            </div>
+
             <footer>
-                <p><em>Disclaimer: This tool is for informational purposes and self-reflection. It is not a substitute for professional medical or psychological advice.</em></p>
+                <p><em>Disclaimer: This tool is for informational purposes and is not a substitute for professional advice.</em></p>
+                <button id="clear-logs-btn" class="danger">Clear All Log Data</button>
             </footer>
         </main>
     </div>
-
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

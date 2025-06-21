@@ -1,329 +1,333 @@
-// static/js/main.js
-
 document.addEventListener('DOMContentLoaded', () => {
     // --- STATE MANAGEMENT ---
-    let currentFaceEmotion = null;
-    let currentVoiceEmotion = null;
-    let currentImagePath = null;
-    let mediaRecorder;
-    let audioChunks = [];
-    let charts = {};
+    let state = {
+        currentFaceEmotion: null,
+        currentVoiceEmotion: null,
+        currentImagePath: null,
+        currentDetector: 'mediapipe',
+        charts: {},
+        audioContext: null,
+        analyser: null,
+        recorder: null,
+        animationFrameId: null,
+    };
 
     // --- ELEMENT SELECTORS ---
-    const video = document.getElementById('video-feed');
-    const canvas = document.getElementById('canvas');
-    const captureBtn = document.getElementById('capture-btn');
-    const faceStatus = document.getElementById('face-status');
-    const detectorSelect = document.getElementById('detector-selector');
-    
-    const recordBtn = document.getElementById('record-btn');
-    const stopBtn = document.getElementById('stop-btn');
-    const voiceStatus = document.getElementById('voice-status');
-
-    const sleepSlider = document.getElementById('sleep-slider');
-    const sleepValue = document.getElementById('sleep-value');
-    const activitySelect = document.getElementById('activity-selector');
-
-    const logCheckinBtn = document.getElementById('log-checkin-btn');
-    const clearLogsBtn = document.getElementById('clear-logs-btn');
-
-    const capturedImageDisplay = document.getElementById('captured-image-display');
-    const currentCheckinInfo = document.getElementById('current-checkin-info');
-    const emotionResultDisplay = document.getElementById('emotion-result-display');
-    const voiceEmotionResultDisplay = document.getElementById('voice-emotion-result-display');
-
-    const feedbackReportDisplay = document.getElementById('feedback-report-display');
-    const stressMetric = document.getElementById('stress-metric');
-    const feedbackText = document.getElementById('feedback-text');
+    const elements = {
+        video: document.getElementById('video-feed'),
+        canvas: document.getElementById('canvas'),
+        captureBtn: document.getElementById('capture-btn'),
+        detectorSelect: document.getElementById('detector-selector'),
+        faceStatus: document.getElementById('face-status'),
+        recordBtn: document.getElementById('record-btn'),
+        stopBtn: document.getElementById('stop-btn'),
+        voiceStatus: document.getElementById('voice-status'),
+        voiceVisualizer: document.getElementById('voice-visualizer'),
+        sleepSlider: document.getElementById('sleep-slider'),
+        sleepValue: document.getElementById('sleep-value'),
+        activitySelect: document.getElementById('activity-selector'),
+        logCheckinBtn: document.getElementById('log-checkin-btn'),
+        clearLogsBtn: document.getElementById('clear-logs-btn'),
+        analysisCard: document.getElementById('current-analysis-card'),
+        capturedImageDisplay: document.getElementById('captured-image-display'),
+        emotionResultDisplay: document.getElementById('emotion-result-display'),
+        voiceEmotionResultDisplay: document.getElementById('voice-emotion-result-display'),
+        feedbackReportDisplay: document.getElementById('feedback-report-display'),
+        stressMetric: document.getElementById('stress-metric'),
+        feedbackText: document.getElementById('feedback-text'),
+        recommendationsCard: document.getElementById('recommendations-card'),
+        recommendationsContent: document.getElementById('recommendations-content'),
+        logTableBody: document.querySelector('#log-table tbody'),
+        noLogsMessage: document.getElementById('no-logs-message'),
+    };
 
     // --- INITIALIZATION ---
     setupWebcam();
     updateDashboard();
 
     // --- EVENT LISTENERS ---
-    captureBtn.addEventListener('click', handleFaceCapture);
-    recordBtn.addEventListener('click', startRecording);
-    stopBtn.addEventListener('click', stopRecording);
-    sleepSlider.addEventListener('input', () => sleepValue.textContent = sleepSlider.value);
-    logCheckinBtn.addEventListener('click', handleLogCheckin);
-    clearLogsBtn.addEventListener('click', handleClearLogs);
+    elements.detectorSelect.addEventListener('change', (e) => state.currentDetector = e.target.value);
+    elements.captureBtn.addEventListener('click', handleFaceCapture);
+    elements.recordBtn.addEventListener('click', startRecording);
+    elements.stopBtn.addEventListener('click', stopRecording);
+    elements.sleepSlider.addEventListener('input', () => elements.sleepValue.textContent = elements.sleepSlider.value);
+    elements.logCheckinBtn.addEventListener('click', handleLogCheckin);
+    elements.clearLogsBtn.addEventListener('click', handleClearLogs);
 
-    // --- WEBCAM & FACE ANALYSIS ---
     function setupWebcam() {
-        if (navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-                .then(stream => {
-                    video.srcObject = stream;
-                })
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => { elements.video.srcObject = stream; })
                 .catch(err => {
-                    console.error("Error accessing webcam:", err);
-                    faceStatus.textContent = "Error: Could not access webcam.";
-                    faceStatus.className = 'status-message error';
+                    console.error("Webcam Error:", err);
+                    updateStatus(elements.faceStatus, "Webcam access denied.", 'error');
                 });
         }
     }
 
     function handleFaceCapture() {
-        faceStatus.textContent = 'Analyzing...';
-        faceStatus.className = 'status-message info';
-        captureBtn.disabled = true;
-
-        const context = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        const imageDataUrl = canvas.toDataURL('image/jpeg');
-        capturedImageDisplay.src = imageDataUrl;
-        capturedImageDisplay.style.display = 'block';
-        currentCheckinInfo.style.display = 'none';
+        updateStatus(elements.faceStatus, 'Analyzing...', 'info');
+        elements.captureBtn.disabled = true;
+        const context = elements.canvas.getContext('2d');
+        elements.canvas.width = elements.video.videoWidth;
+        elements.canvas.height = elements.video.videoHeight;
+        context.drawImage(elements.video, 0, 0, elements.canvas.width, elements.canvas.height);
+        const imageDataUrl = elements.canvas.toDataURL('image/jpeg');
 
         fetch('/analyze_face', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: imageDataUrl, detector: detectorSelect.value }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                throw new Error(data.error);
-            }
-            currentFaceEmotion = data.emotion;
-            currentImagePath = data.image_path;
-            updateStatus(faceStatus, `Success: ${data.emotion}`, 'success');
-            updateResultDisplay(emotionResultDisplay, `Face Emotion: <strong>${data.emotion}</strong>`);
-        })
-        .catch(error => {
-            currentFaceEmotion = null;
-            currentImagePath = null;
-            updateStatus(faceStatus, `Error: ${error.message}`, 'error');
-            updateResultDisplay(emotionResultDisplay, `Face Analysis Failed`, true);
-        })
-        .finally(() => {
-            captureBtn.disabled = false;
-        });
-    }
-
-    // --- AUDIO RECORDING & ANALYSIS ---
-    function startRecording() {
-        navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-            .then(stream => {
-                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-                audioChunks = [];
-                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
-                mediaRecorder.start();
-
-                updateStatus(voiceStatus, 'Recording...', 'info');
-                recordBtn.disabled = true;
-                stopBtn.disabled = false;
-            }).catch(err => {
-                console.error("Error accessing microphone:", err);
-                updateStatus(voiceStatus, 'Error: Mic access denied.', 'error');
-            });
-    }
-
-    function stopRecording() {
-        mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' }); // Flask will handle conversion
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'recording.wav');
-
-            updateStatus(voiceStatus, 'Analyzing voice...', 'info');
-            stopBtn.disabled = true;
-
-            fetch('/analyze_voice', { method: 'POST', body: formData })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) throw new Error(data.error);
-                    currentVoiceEmotion = data.voice_emotion;
-                    updateStatus(voiceStatus, `Success: ${data.voice_emotion}`, 'success');
-                    updateResultDisplay(voiceEmotionResultDisplay, `Voice Emotion: <strong>${data.voice_emotion}</strong>`);
-                })
-                .catch(error => {
-                    currentVoiceEmotion = null;
-                    updateStatus(voiceStatus, `Error: ${error.message}`, 'error');
-                    updateResultDisplay(voiceEmotionResultDisplay, `Voice Analysis Failed`, true);
-                })
-                .finally(() => {
-                    recordBtn.disabled = false;
-                });
-        };
-        mediaRecorder.stop();
-    }
-
-    // --- LOGGING & FEEDBACK ---
-    function handleLogCheckin() {
-        if (!currentFaceEmotion || currentFaceEmotion.startsWith("Error")) {
-            alert("Please capture a valid face emotion before logging.");
-            return;
-        }
-
-        const payload = {
-            emotion: currentFaceEmotion,
-            voice_emotion: currentVoiceEmotion || "N/A",
-            sleep_hours: parseFloat(sleepSlider.value),
-            activity_level: activitySelect.value,
-            detector: detectorSelect.value,
-            image_path: currentImagePath || "N/A"
-        };
-        
-        logCheckinBtn.textContent = 'Logging...';
-        logCheckinBtn.disabled = true;
-
-        fetch('/log_checkin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: imageDataUrl, detector: state.currentDetector }),
         })
         .then(response => response.json())
         .then(data => {
             if (data.error) throw new Error(data.error);
-            displayFeedback(data.feedback, data.stress_score);
-            alert("Check-in logged successfully!");
-            updateDashboard(); // Refresh charts
+            state.currentFaceEmotion = data.emotion;
+            state.currentImagePath = data.image_path;
+            elements.analysisCard.style.display = 'block';
+            elements.capturedImageDisplay.src = imageDataUrl;
+            elements.capturedImageDisplay.style.display = 'block';
+            updateStatus(elements.faceStatus, `Success!`, 'success');
+            updateResultDisplay(elements.emotionResultDisplay, `Facial Expression: <strong>${data.emotion}</strong>`);
         })
         .catch(error => {
-            alert(`Error logging check-in: ${error.message}`);
+            state.currentFaceEmotion = null; state.currentImagePath = null;
+            updateStatus(elements.faceStatus, `Analysis failed.`, 'error');
+            updateResultDisplay(elements.emotionResultDisplay, `Analysis Failed`, true);
         })
-        .finally(() => {
-            logCheckinBtn.textContent = '📊 Analyze and Log Check-in';
-            logCheckinBtn.disabled = false;
-        });
+        .finally(() => { elements.captureBtn.disabled = false; });
+    }
+
+    // --- VOICE RECORDING & VISUALIZATION ---
+    async function startRecording() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            updateStatus(elements.voiceStatus, 'Audio capture not supported.', 'error');
+            return;
+        }
+        updateStatus(elements.voiceStatus, 'Starting...', 'info');
+        elements.recordBtn.disabled = true;
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        state.recorder = new MediaRecorder(stream);
+        const audioChunks = [];
+
+        // Setup visualization
+        if (!state.audioContext) {
+            state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        state.analyser = state.audioContext.createAnalyser();
+        const source = state.audioContext.createMediaStreamSource(stream);
+        source.connect(state.analyser);
+        drawVoiceVisualizer();
+
+        state.recorder.ondataavailable = event => audioChunks.push(event.data);
+        state.recorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            analyzeVoice(audioBlob);
+            stream.getTracks().forEach(track => track.stop()); // Stop mic access
+            cancelAnimationFrame(state.animationFrameId);
+            clearVisualizer();
+        };
+
+        state.recorder.start();
+        updateStatus(elements.voiceStatus, 'Recording...', 'info');
+        elements.stopBtn.disabled = false;
+    }
+
+    function stopRecording() {
+        if (state.recorder && state.recorder.state === 'recording') {
+            state.recorder.stop();
+            elements.stopBtn.disabled = true;
+            elements.recordBtn.disabled = false;
+        }
+    }
+
+    function analyzeVoice(audioBlob) {
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'recording.webm');
+        updateStatus(elements.voiceStatus, 'Analyzing...', 'info');
+        
+        fetch('/analyze_voice', { method: 'POST', body: formData })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                state.currentVoiceEmotion = data.voice_emotion;
+                elements.analysisCard.style.display = 'block';
+                updateStatus(elements.voiceStatus, `Success!`, 'success');
+                updateResultDisplay(elements.voiceEmotionResultDisplay, `Vocal Tone: <strong>${data.voice_emotion}</strong>`);
+            })
+            .catch(error => {
+                state.currentVoiceEmotion = null;
+                updateStatus(elements.voiceStatus, `Analysis failed.`, 'error');
+                updateResultDisplay(elements.voiceEmotionResultDisplay, `Analysis Failed`, true);
+            });
     }
     
+    function drawVoiceVisualizer() {
+        const canvas = elements.voiceVisualizer;
+        const canvasCtx = canvas.getContext('2d');
+        state.analyser.fftSize = 256;
+        const bufferLength = state.analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        const draw = () => {
+            state.animationFrameId = requestAnimationFrame(draw);
+            state.analyser.getByteFrequencyData(dataArray);
+            
+            canvasCtx.fillStyle = '#f8f9fa';
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let barHeight;
+            let x = 0;
+            
+            for (let i = 0; i < bufferLength; i++) {
+                barHeight = dataArray[i] / 2;
+                canvasCtx.fillStyle = `rgba(58, 141, 222, ${barHeight / 100})`;
+                canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                x += barWidth + 1;
+            }
+        };
+        draw();
+    }
+
+    function clearVisualizer() {
+        const canvas = elements.voiceVisualizer;
+        const canvasCtx = canvas.getContext('2d');
+        canvasCtx.fillStyle = '#f8f9fa';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    // --- LOGGING & DASHBOARD ---
+    function handleLogCheckin() {
+        if (!state.currentFaceEmotion || state.currentFaceEmotion.startsWith("Error")) {
+            alert("Please complete a successful face analysis before logging.");
+            return;
+        }
+        const payload = {
+            emotion: state.currentFaceEmotion, voice_emotion: state.currentVoiceEmotion || "N/A",
+            sleep_hours: parseFloat(elements.sleepSlider.value), activity_level: elements.activitySelect.value,
+            detector: state.currentDetector, image_path: state.currentImagePath || "N/A"
+        };
+        elements.logCheckinBtn.textContent = 'Logging...';
+        elements.logCheckinBtn.disabled = true;
+
+        fetch('/log_checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                displayFeedback(data.feedback, data.stress_score);
+                displayRecommendations(data.stress_score);
+                updateDashboard();
+            })
+            .catch(error => alert(`Error logging check-in: ${error.message}`))
+            .finally(() => {
+                elements.logCheckinBtn.textContent = 'Complete Check-in & Get Feedback';
+                elements.logCheckinBtn.disabled = false;
+            });
+    }
+
     function handleClearLogs() {
-        if (confirm("Are you sure you want to permanently delete all log data? This cannot be undone.")) {
+        if (confirm("Are you sure you want to permanently delete all log data?")) {
             fetch('/clear_logs', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.status === 'success') {
-                        alert(data.message);
-                        // Reset UI state
-                        currentFaceEmotion = null;
-                        currentVoiceEmotion = null;
-                        currentImagePath = null;
-                        emotionResultDisplay.style.display = 'none';
-                        voiceEmotionResultDisplay.style.display = 'none';
-                        feedbackReportDisplay.style.display = 'none';
-                        capturedImageDisplay.style.display = 'none';
-                        currentCheckinInfo.style.display = 'block';
-                        updateDashboard();
-                    } else {
-                        throw new Error(data.message);
-                    }
+                    if (data.status === 'success') updateDashboard();
+                    else throw new Error(data.message);
                 })
                 .catch(error => alert(`Error clearing logs: ${error.message}`));
         }
     }
 
-
-    // --- UI UPDATERS ---
-    function updateStatus(element, message, type) {
-        element.textContent = message;
-        element.className = `status-message ${type}`;
-    }
-
-    function updateResultDisplay(element, message, isError = false) {
-        element.innerHTML = message;
-        element.style.color = isError ? 'var(--error-color)' : 'var(--text-color)';
-        element.style.display = 'block';
-    }
-    
-    function displayFeedback(feedback, score) {
-        feedbackReportDisplay.style.display = 'block';
-        stressMetric.innerHTML = `
-            <div class="metric-label">Calculated Potential Stress Score</div>
-            <div class="metric-value">${score}</div>
-        `;
-        // Replace markdown-like bolding with HTML tags
-        feedbackText.innerHTML = feedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-    }
-    
-    // --- DASHBOARD & CHARTS ---
     function updateDashboard() {
         fetch('/get_logs')
             .then(response => response.json())
             .then(logData => {
+                Object.values(state.charts).forEach(chart => chart.destroy());
+                state.charts = {};
+                
                 if (logData.data && logData.data.length > 0) {
+                    elements.noLogsMessage.style.display = 'none';
+                    populateLogTable(logData.data);
                     processLogDataForCharts(logData.data);
                 } else {
-                    // Clear charts if no data
-                    Object.values(charts).forEach(chart => chart.destroy());
-                    charts = {};
+                    elements.logTableBody.innerHTML = '';
+                    elements.noLogsMessage.style.display = 'block';
                 }
-            });
+            })
+            .catch(error => console.error("Failed to fetch logs:", error));
     }
 
-    function processLogDataForCharts(data) {
-        const labels = data.map(d => d.timestamp);
-        
-        // Stress Chart
-        const stressScores = data.map(d => d.stress_score);
-        renderChart('stress-chart', 'line', labels, 'Stress Score', stressScores, '#FF4B4B');
-        
-        // Sleep Chart
-        const sleepHours = data.map(d => d.sleep_hours);
-        renderChart('sleep-chart', 'line', labels, 'Sleep Hours', sleepHours, '#00BFFF');
-        
-        // Emotion Chart
-        const emotionCounts = countOccurrences(data.map(d => d.emotion).filter(e => e && !e.startsWith('Error')));
-        renderChart('emotion-chart', 'bar', Object.keys(emotionCounts), 'Count', Object.values(emotionCounts), '#4BC0C0');
-
-        // Voice Emotion Chart
-        const voiceEmotionCounts = countOccurrences(data.map(d => d.voice_emotion).filter(e => e && !e.startsWith('Error') && e !== 'N/A'));
-        renderChart('voice-emotion-chart', 'bar', Object.keys(voiceEmotionCounts), 'Count', Object.values(voiceEmotionCounts), '#9966FF');
-    }
-
-    function renderChart(canvasId, type, labels, label, data, color) {
-        const ctx = document.getElementById(canvasId).getContext('2d');
-        if (charts[canvasId]) {
-            charts[canvasId].destroy();
-        }
-        charts[canvasId] = new Chart(ctx, {
-            type: type,
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: label,
-                    data: data,
-                    backgroundColor: color,
-                    borderColor: color,
-                    borderWidth: type === 'line' ? 2 : 1,
-                    fill: false,
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
+    function populateLogTable(data) {
+        elements.logTableBody.innerHTML = '';
+        data.slice().reverse().forEach(log => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${new Date(log.timestamp).toLocaleString()}</td> <td>${log.face_emotion}</td> <td>${log.voice_emotion}</td> <td>${log.sleep_hours}h</td> <td>${log.activity_level}</td> <td>${log.stress_score}</td>`;
+            elements.logTableBody.appendChild(row);
         });
     }
 
-    function countOccurrences(arr) {
-        return arr.reduce((acc, curr) => {
-            acc[curr] = (acc[curr] || 0) + 1;
-            return acc;
-        }, {});
+    function processLogDataForCharts(data) {
+        const labels = data.map(d => new Date(d.timestamp).toLocaleDateString());
+        renderChart('trends-chart', 'line', {
+            labels,
+            datasets: [
+                { label: 'Stress Score', data: data.map(d => d.stress_score), borderColor: '#D9534F', backgroundColor: 'rgba(217, 83, 79, 0.1)', fill: true, tension: 0.4 },
+                { label: 'Sleep Hours', data: data.map(d => d.sleep_hours), borderColor: '#3A8DDE', backgroundColor: 'rgba(58, 141, 222, 0.1)', fill: true, tension: 0.4 }
+            ]
+        }, 'Well-being Trends');
+        
+        const faceEmotionCounts = countOccurrences(data.map(d => d.face_emotion).filter(e => e && !e.startsWith('Error')));
+        renderChart('emotion-chart', 'doughnut', { labels: Object.keys(faceEmotionCounts), datasets: [{ data: Object.values(faceEmotionCounts) }] }, 'Facial Emotion Spectrum');
+
+        const voiceEmotionCounts = countOccurrences(data.map(d => d.voice_emotion).filter(e => e && !e.startsWith('Error') && e !== 'N/A'));
+        renderChart('voice-emotion-chart', 'doughnut', { labels: Object.keys(voiceEmotionCounts), datasets: [{ data: Object.values(voiceEmotionCounts) }] }, 'Vocal Emotion Spectrum');
     }
+
+    // --- UTILITY & DISPLAY FUNCTIONS ---
+    function updateStatus(element, message, type) { element.innerHTML = message; element.className = `status-message ${type}`; }
+    function updateResultDisplay(element, message, isError = false) { element.innerHTML = message; element.style.color = isError ? 'var(--danger-color)' : 'var(--text-primary)'; element.classList.add('show'); }
+    function displayFeedback(feedback, score) {
+        elements.feedbackReportDisplay.style.display = 'block';
+        elements.stressMetric.innerHTML = `<div class="metric-label">Potential Stress Score</div><div class="metric-value">${score}</div>`;
+        elements.feedbackText.innerHTML = feedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+    }
+    function displayRecommendations(score) {
+        let content = '<ul>';
+        if (score <= 2) { content += '<li>You seem to be in a great place! Keep up your healthy routines.</li><li>Consider sharing your positivity with someone today.</li>'; }
+        else if (score <= 4) { content += '<li>You\'re managing well. A short walk or 5 minutes of quiet time could be beneficial.</li><li>Ensure you are staying hydrated throughout the day.</li>'; }
+        else { content += '<li>Your stress score is elevated. Prioritize getting a full night\'s sleep.</li><li>Consider a calming activity like listening to music or a guided meditation.</li><li>Reaching out to a friend, family member, or professional can be very helpful.</li>'; }
+        content += '</ul>';
+        elements.recommendationsContent.innerHTML = content;
+        elements.recommendationsCard.style.display = 'block';
+    }
+    function renderChart(canvasId, type, chartData, title) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        const chartColors = ['#3A8DDE', '#5FAD56', '#F0AD4E', '#D9534F', '#5BC0DE', '#8E7CC3', '#E56B6F'];
+        let options = { responsive: true, maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: title, font: { size: 16, family: "'Poppins', sans-serif" }, padding: { top: 10, bottom: 20 } },
+                legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } },
+                tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.7)', padding: 10, cornerRadius: 4 }
+            }
+        };
+        
+        if (type === 'line') {
+            options.scales = { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } };
+            options.plugins.legend.labels.usePointStyle = true;
+        } else if (type === 'doughnut') {
+            chartData.datasets[0].backgroundColor = chartColors;
+            chartData.datasets[0].borderColor = 'var(--card-bg)';
+            options.cutout = '60%';
+        }
+        
+        state.charts[canvasId] = new Chart(ctx, { type, data: chartData, options });
+    }
+    function countOccurrences(arr) { return arr.reduce((acc, curr) => (acc[curr] = (acc[curr] || 0) + 1, acc), {}); }
 });
 
-// Tab switching logic for dashboard
 function openTab(evt, tabName) {
-    let i, tabcontent, tablinks;
-    tabcontent = document.getElementsByClassName("tab-content");
-    for (i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = "none";
-    }
-    tablinks = document.getElementsByClassName("tab-link");
-    for (i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" active", "");
-    }
+    document.querySelectorAll(".tab-content").forEach(tc => tc.style.display = "none");
+    document.querySelectorAll(".tab-link").forEach(tl => tl.classList.remove("active"));
     document.getElementById(tabName).style.display = "block";
-    evt.currentTarget.className += " active";
+    evt.currentTarget.classList.add("active");
 }
